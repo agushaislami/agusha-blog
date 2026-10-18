@@ -3,7 +3,7 @@
 
 @section('content')
 <header class="dashboard-heading">
-    <a class="text-decoration-none" href="{{ route('dashboard.statuses', ['status' => $post->status]) }}">← Kembali ke status artikel</a>
+    <a class="dashboard-back-link text-decoration-none" href="{{ route('dashboard.statuses', ['status' => $post->status]) }}">← Kembali ke status artikel</a>
     <h1 class="mt-3">Edit artikel</h1>
     <p>Setelah disimpan, status draft atau published tetap dipertahankan dan artikel diberi tanda Edited.</p>
 </header>

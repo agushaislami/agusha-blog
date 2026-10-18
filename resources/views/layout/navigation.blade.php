@@ -28,6 +28,8 @@
                             <li>
                                 <a class="dropdown-item" href="{{ route('dashboard') }}">Dashboard</a>
                             </li>
+                            <li><a class="dropdown-item" href="{{ route('dashboard.reading-list.index') }}">Daftar bacaan</a></li>
+                            <li><a class="dropdown-item" href="{{ route('authors.show', auth()->user()) }}">Profil penulis</a></li>
                             <li>
                                 <form action="{{ route('logout') }}" method="POST">
                                     @csrf

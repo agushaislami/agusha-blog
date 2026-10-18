@@ -21,12 +21,12 @@
                 <form method="POST" action="{{ route('login.store') }}">
                     @csrf
                     <div class="form-floating mb-3">
-                        <input class="form-control @error('email') is-invalid @enderror" id="email" name="email" type="email" value="{{ old('email') }}" placeholder="name@example.com" autocomplete="email" required autofocus />
+                        <input class="form-control @error('email') is-invalid @enderror" id="email" name="email" type="email" value="{{ old('email') }}" placeholder=" " autocomplete="email" required autofocus />
                         <label for="email">Email address</label>
                         @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>
                     <div class="form-floating mb-3">
-                        <input class="form-control @error('password') is-invalid @enderror" id="password" name="password" type="password" placeholder="Password" autocomplete="current-password" required />
+                        <input class="form-control @error('password') is-invalid @enderror" id="password" name="password" type="password" placeholder=" " autocomplete="current-password" required />
                         <label for="password">Password</label>
                         @error('password')<div class="invalid-feedback">{{ $message }}</div>@enderror
                     </div>

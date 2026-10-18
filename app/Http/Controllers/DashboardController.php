@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Comment;
 use App\Models\Post;
 use App\Models\PostAutosave;
 use App\Models\Tag;
@@ -26,9 +27,7 @@ class DashboardController extends Controller
         $autosaveData = $autosave?->payload ?? [];
         $bodyContent = $htmlSanitizer->sanitize(old('body', $autosaveData['body'] ?? ''));
         $featuredImagePreview = $autosaveData['featured_image'] ?? null;
-        $featuredImageUrl = $featuredImagePreview && ! str_starts_with($featuredImagePreview, 'storage/')
-            ? $featuredImagePreview
-            : '';
+        $featuredImageUrl = $this->externalImageUrl($featuredImagePreview);
 
         return view('dashboard.posts.create', compact('autosave', 'autosaveData', 'bodyContent', 'featuredImagePreview', 'featuredImageUrl'));
     }
@@ -44,9 +43,7 @@ class DashboardController extends Controller
         $autosaveData = $autosave?->payload ?? [];
         $bodyContent = $htmlSanitizer->sanitize(old('body', $autosaveData['body'] ?? $post->body));
         $featuredImagePreview = $autosaveData['featured_image'] ?? $post->featured_image;
-        $featuredImageUrl = $featuredImagePreview && ! str_starts_with($featuredImagePreview, 'storage/')
-            ? $featuredImagePreview
-            : '';
+        $featuredImageUrl = $this->externalImageUrl($featuredImagePreview);
 
         return view('dashboard.posts.edit', compact('post', 'autosave', 'autosaveData', 'bodyContent', 'featuredImagePreview', 'featuredImageUrl'));
     }
@@ -71,6 +68,7 @@ class DashboardController extends Controller
         }
 
         $post->load(['user', 'category', 'tags']);
+        $post->setRelation('comments', collect());
         $previewCategoryName = $autosave?->payload['category'] ?? $post->category?->name;
         $previewTagNames = isset($autosave?->payload['tags'])
             ? collect(explode(',', $autosave->payload['tags']))->map(fn (string $tag): string => trim($tag))->filter()->values()
@@ -165,18 +163,25 @@ class DashboardController extends Controller
     {
         $validated = $request->validate([
             'status' => ['nullable', Rule::in(['draft', 'published'])],
+            'sort' => ['nullable', Rule::in(['newest', 'oldest', 'views'])],
         ]);
 
-        $selectedStatus = $validated['status'] ?? 'draft';
-        $posts = Post::query()
+        $selectedStatus = $validated['status'] ?? 'published';
+        $sort = $validated['sort'] ?? 'newest';
+        $query = Post::query()
             ->where('user_id', $request->user()->id)
             ->with(['category', 'tags'])
-            ->where('status', $selectedStatus)
-            ->latest('updated_at')
-            ->paginate(10)
-            ->withQueryString();
+            ->where('status', $selectedStatus);
 
-        return view('dashboard.statuses', compact('posts', 'selectedStatus'));
+        match ($sort) {
+            'oldest' => $query->orderBy('created_at')->orderBy('id'),
+            'views' => $query->orderByDesc('views')->orderByDesc('created_at'),
+            default => $query->orderByDesc('created_at')->orderByDesc('id'),
+        };
+
+        $posts = $query->paginate(10)->withQueryString();
+
+        return view('dashboard.statuses', compact('posts', 'selectedStatus', 'sort'));
     }
 
     public function updateStatus(Request $request, Post $post): RedirectResponse
@@ -341,13 +346,29 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
+        $publishedPostIds = Post::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', 'published')
+            ->select('id');
+
+        $totalViews = (clone $publishedPostIds)->sum('views');
+        $totalComments = Comment::query()
+            ->whereIn('post_id', $publishedPostIds)
+            ->count();
+        $recentComments = Comment::query()
+            ->whereIn('post_id', $publishedPostIds)
+            ->with(['post', 'user'])
+            ->latest()
+            ->take(4)
+            ->get();
+
         $postCounts = Post::query()
             ->where('user_id', $request->user()->id)
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        return view('dashboard.index', compact('posts', 'postCounts'));
+        return view('dashboard.index', compact('posts', 'postCounts', 'totalViews', 'totalComments', 'recentComments'));
     }
 
     private function deleteAutosaveImage(?PostAutosave $autosave, ?string $preservedImage): void
@@ -361,6 +382,17 @@ class DashboardController extends Controller
         ) {
             Storage::disk('public')->delete(substr($autosaveImage, strlen('storage/')));
         }
+    }
+
+    private function externalImageUrl(?string $image): string
+    {
+        if (! is_string($image) || ! filter_var($image, FILTER_VALIDATE_URL)) {
+            return '';
+        }
+
+        $scheme = parse_url($image, PHP_URL_SCHEME);
+
+        return in_array(strtolower((string) $scheme), ['http', 'https'], true) ? $image : '';
     }
 
     private function syncPostTaxonomy(Post $post, ?string $categoryName, ?string $tagNames): void

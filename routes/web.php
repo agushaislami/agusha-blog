@@ -1,9 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InlineImageController;
 use App\Http\Controllers\PostsController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ReadingListController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/home');
@@ -20,6 +23,16 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->n
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
 
 Route::middleware('auth')->prefix('dashboard')->name('dashboard.')->group(function () {
+    Route::get('/reading-list', [ReadingListController::class, 'index'])->name('reading-list.index');
+    Route::get('/comments', [CommentController::class, 'index'])->name('comments.index');
+    Route::post('/reading-list/{post}', [ReadingListController::class, 'store'])->name('reading-list.store');
+    Route::patch('/reading-list/{post}/toggle', [ReadingListController::class, 'toggle'])->name('reading-list.toggle');
+    Route::delete('/reading-list/{post}', [ReadingListController::class, 'destroy'])->name('reading-list.destroy');
+    Route::post('/posts/{post}/comments', [CommentController::class, 'store'])->name('posts.comments.store');
+    Route::put('/comments/{comment}', [CommentController::class, 'update'])->name('comments.update');
+    Route::delete('/comments/{comment}', [CommentController::class, 'destroy'])->name('comments.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::get('/statuses', [DashboardController::class, 'statuses'])->name('statuses');
     Route::get('/posts/create', [DashboardController::class, 'create'])->name('posts.create');
     Route::post('/posts/inline-images', [InlineImageController::class, 'store'])->name('posts.inline-images.store');
@@ -37,5 +50,7 @@ Route::get('/home', [PostsController::class, 'index'])->name('home');
 Route::get('/about', [PostsController::class, 'about'])->name('about');
 
 Route::get('/post/{slug}', [PostsController::class, 'show'])->name('post');
+
+Route::get('/authors/{user}', [ProfileController::class, 'show'])->name('authors.show');
 
 Route::get('/contact', [PostsController::class, 'contact'])->name('contact');

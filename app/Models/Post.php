@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'user_id',
@@ -18,6 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
     'image_caption',
     'status',
     'is_edit',
+    'views',
     'published_at',
 ])]
 class Post extends Model
@@ -27,6 +29,7 @@ class Post extends Model
         return [
             'published_at' => 'datetime',
             'is_edit' => 'boolean',
+            'views' => 'integer',
         ];
     }
 
@@ -43,5 +46,10 @@ class Post extends Model
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class);
+    }
+
+    public function comments(): HasMany
+    {
+        return $this->hasMany(Comment::class);
     }
 }

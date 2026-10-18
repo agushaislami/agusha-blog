@@ -42,6 +42,7 @@
         <button class="btn btn-sm btn-light" type="button" data-command="bold" aria-label="Tebal" title="Tebal"><i class="fas fa-bold" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-light" type="button" data-command="italic" aria-label="Miring" title="Miring"><i class="fas fa-italic" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-light" type="button" data-command="underline" aria-label="Garis bawah" title="Garis bawah"><i class="fas fa-underline" aria-hidden="true"></i></button>
+        <button class="btn btn-sm btn-light" type="button" data-command="inlineCode" aria-label="Kode inline" title="Kode inline"><i class="fas fa-code" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-light" type="button" data-command="formatBlock" data-value="h2" aria-label="Judul bagian" title="Judul bagian"><i class="fas fa-heading" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-light" type="button" data-command="formatBlock" data-value="blockquote" aria-label="Kutipan" title="Kutipan"><i class="fas fa-quote-right" aria-hidden="true"></i></button>
         <button class="btn btn-sm btn-light" type="button" data-command="insertUnorderedList" aria-label="Daftar" title="Daftar"><i class="fas fa-list-ul" aria-hidden="true"></i></button>
@@ -127,6 +128,7 @@
     .rich-editor img.article-image-align-center { margin-right: auto; margin-left: auto; }
     .rich-editor img.article-image-align-right { margin-right: 0; margin-left: auto; }
     .rich-editor img.is-selected { outline: 2px solid #0085a1; outline-offset: 3px; }
+    .rich-editor code, .post-body code { padding: .12em .35em; border: 1px solid #e1e7e9; border-radius: .3rem; background: #f1f4f5; color: #a23b52; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; font-size: .9em; }
     .rich-editor figure { margin: 1rem 0; }
     .featured-image-preview-link { display: block; width: fit-content; max-width: 100%; }
     .featured-image-preview { display: block; width: min(100%, 420px); max-height: 280px; object-fit: contain; object-position: left center; border: 1px solid #dee2e6; border-radius: .5rem; background: #f7f9fa; }
@@ -275,6 +277,14 @@
             return selectedElement?.closest('#richArticleEditor h2') ?? null;
         };
 
+        const getSelectedCode = () => {
+            const selection = window.getSelection();
+            const selectedNode = selection?.anchorNode;
+            const selectedElement = selectedNode instanceof Element ? selectedNode : selectedNode?.parentElement;
+
+            return selectedElement?.closest('#richArticleEditor code') ?? null;
+        };
+
         const updateToolbarState = () => {
             document.querySelectorAll('.rich-editor-toolbar [data-command]').forEach((button) => {
                 const command = button.dataset.command;
@@ -287,6 +297,8 @@
                         const activeBlock = document.queryCommandValue('formatBlock').replace(/[<>]/g, '').toLowerCase();
                         isActive = activeBlock === button.dataset.value;
                     }
+                } else if (command === 'inlineCode') {
+                    isActive = getSelectedCode() !== null;
                 } else {
                     isActive = document.queryCommandState(command);
                 }
@@ -386,6 +398,35 @@
                         selection.addRange(range);
                     } else {
                         document.execCommand(command, false, button.dataset.value);
+                    }
+                } else if (command === 'inlineCode') {
+                    const selection = window.getSelection();
+
+                    if (!selection || selection.isCollapsed || !editor.contains(selection.anchorNode)) {
+                        return;
+                    }
+
+                    const selectedCode = getSelectedCode();
+
+                    if (selectedCode) {
+                        const selectionRange = selection.getRangeAt(0);
+                        const codeContents = document.createDocumentFragment();
+
+                        while (selectedCode.firstChild) {
+                            codeContents.append(selectedCode.firstChild);
+                        }
+
+                        selectedCode.replaceWith(codeContents);
+                        selection.removeAllRanges();
+                        selection.addRange(selectionRange);
+                    } else {
+                        const range = selection.getRangeAt(0);
+                        const codeElement = document.createElement('code');
+                        codeElement.append(range.extractContents());
+                        range.insertNode(codeElement);
+                        range.selectNodeContents(codeElement);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
                     }
                 } else {
                     document.execCommand(command, false, button.dataset.value ?? null);

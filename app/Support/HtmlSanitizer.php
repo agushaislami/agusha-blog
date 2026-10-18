@@ -9,7 +9,7 @@ use DOMNode;
 class HtmlSanitizer
 {
     private const ALLOWED_TAGS = [
-        'a', 'blockquote', 'br', 'em', 'figcaption', 'figure', 'h2', 'h3', 'img',
+        'a', 'blockquote', 'br', 'code', 'em', 'figcaption', 'figure', 'h2', 'h3', 'img',
         'li', 'ol', 'p', 's', 'strong', 'u', 'ul',
     ];
 

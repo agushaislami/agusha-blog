@@ -3,7 +3,7 @@
 
 @section('content')
 <header class="dashboard-heading">
-    <a class="text-decoration-none" href="{{ route('dashboard') }}">← Kembali ke dashboard</a>
+    <a class="text-decoration-none dashboard-back-link" href="{{ route('dashboard') }}">← Kembali ke dashboard</a>
     <h1 class="mt-3">Tulis artikel</h1>
     <p>Tulis artikel baru, lalu simpan sebagai draft atau terbitkan.</p>
 </header>

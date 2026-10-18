@@ -44,6 +44,9 @@
     .category-count { color: #92a0a4; font-size: .8rem; }
     .home-empty { padding: 2.5rem 1.5rem; border: 1px dashed #cad8db; border-radius: .9rem; background: rgba(255, 255, 255, .7); color: #718087; text-align: center; }
     .home-filter-note { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0 0 1.5rem; color: #687a80; font-size: .9rem; }
+    .home-pagination .pagination { --bs-pagination-padding-x: .75rem; --bs-pagination-padding-y: .375rem; --bs-pagination-font-size: .9rem; --bs-pagination-border-radius: .375rem; margin-bottom: 0; }
+    .home-sort-form { display: flex; align-items: center; gap: .5rem; }
+    .home-sort-form .form-select { width: 190px; border-radius: .55rem; font-size: .82rem; }
     @media (max-width: 767.98px) {
         .home-hero { padding-top: 4.25rem; }
         .featured-story { grid-template-columns: 1fr; }
@@ -65,6 +68,7 @@
             <form class="home-search" action="{{ route('home') }}" method="GET" role="search">
                 @if ($selectedCategory)<input type="hidden" name="category" value="{{ $selectedCategory }}" />@endif
                 @if ($selectedTag)<input type="hidden" name="tag" value="{{ $selectedTag }}" />@endif
+                @if ($sort !== 'newest')<input type="hidden" name="sort" value="{{ $sort }}" />@endif
                 <label class="visually-hidden" for="homeSearch">Cari artikel</label>
                 <input class="form-control" id="homeSearch" name="q" type="search" value="{{ $searchTerm }}" placeholder="Cari judul atau ringkasan artikel..." />
                 <button class="btn btn-primary" type="submit"><i class="fas fa-search me-2" aria-hidden="true"></i>Cari</button>
@@ -73,13 +77,13 @@
     </header>
 
     <main class="container px-4 px-lg-5 home-content">
-        @if ($selectedCategory || $selectedTag || $searchTerm)
+                @if ($selectedCategory || $selectedTag || $searchTerm)
             <div class="home-filter-note">
                 <span>Menampilkan hasil untuk:</span>
                 @if ($selectedCategory)<span class="story-chip">Kategori: {{ str_replace('-', ' ', $selectedCategory) }}</span>@endif
                 @if ($selectedTag)<span class="story-chip">Tag: {{ str_replace('-', ' ', $selectedTag) }}</span>@endif
                 @if ($searchTerm)<span class="story-chip">“{{ $searchTerm }}”</span>@endif
-                <a href="{{ route('home') }}">Hapus filter</a>
+                <a href="{{ route('home', ['sort' => $sort]) }}">Hapus filter</a>
             </div>
         @endif
 
@@ -89,22 +93,32 @@
                     <article class="featured-story">
                         <a class="featured-story-image" href="{{ route('post', ['slug' => $featuredPost->slug]) }}" @if ($featuredPost->featured_image) style="background-image: url('{{ asset($featuredPost->featured_image) }}')" @endif aria-label="Baca {{ $featuredPost->title }}"></a>
                         <div class="featured-story-copy">
-                            <div class="story-label">Pilihan terbaru</div>
+                            <div class="story-label">{{ ['newest' => 'Pilihan terbaru', 'oldest' => 'Artikel terlama', 'views' => 'Paling banyak dilihat'][$sort] }}</div>
                             @if ($featuredPost->category)
-                                <div class="story-chips mt-2"><a class="story-chip" href="{{ route('home', ['category' => $featuredPost->category->slug]) }}">{{ $featuredPost->category->name }}</a></div>
+                                <div class="story-chips mt-2"><a class="story-chip" href="{{ route('home', array_filter(['category' => $featuredPost->category->slug, 'sort' => $sort !== 'newest' ? $sort : null])) }}">{{ $featuredPost->category->name }}</a></div>
                             @endif
                             <h2><a href="{{ route('post', ['slug' => $featuredPost->slug]) }}">{{ $featuredPost->title }}</a></h2>
                             @if ($featuredPost->excerpt)
                                 <p class="featured-story-excerpt">{{ $featuredPost->excerpt }}</p>
                             @endif
-                            <div class="story-meta mb-3">Oleh {{ $featuredPost->user?->name ?? 'Agusha Blog' }} · {{ $featuredPost->published_at->locale('id')->translatedFormat('d F Y') }}</div>
+                            <div class="story-meta mb-3">Oleh
+                                @if ($featuredPost->user)
+                                    <a href="{{ route('authors.show', $featuredPost->user) }}">{{ $featuredPost->user->name }}</a>
+                                @else
+                                    Agusha Blog
+                                @endif
+                                · {{ $featuredPost->published_at->locale('id')->translatedFormat('d F Y') }}
+                            </div>
                             @if ($featuredPost->tags->isNotEmpty())
                                 <div class="story-chips">
                                     @foreach ($featuredPost->tags as $tag)
-                                        <a class="story-chip" href="{{ route('home', ['tag' => $tag->slug]) }}">#{{ $tag->name }}</a>
+                                        <a class="story-chip" href="{{ route('home', array_filter(['tag' => $tag->slug, 'sort' => $sort !== 'newest' ? $sort : null])) }}">#{{ $tag->name }}</a>
                                     @endforeach
                                 </div>
                             @endif
+                            <div class="mt-3">
+                                @include('layout.reading-list-button', ['post' => $featuredPost, 'isSaved' => in_array($featuredPost->id, $savedPostIds, true), 'iconOnly' => true])
+                            </div>
                         </div>
                     </article>
                 @endif
@@ -114,7 +128,17 @@
                         <div class="home-eyebrow">Dari komunitas kami</div>
                         <h2 class="home-section-title mb-0">{{ $selectedCategory || $selectedTag || $searchTerm ? 'Artikel yang cocok' : 'Artikel lainnya' }}</h2>
                     </div>
-                    <span class="text-muted small">{{ $posts->total() + ($featuredPost ? 1 : 0) }} artikel</span>
+                    <form class="home-sort-form" action="{{ route('home') }}" method="GET">
+                        @if ($selectedCategory)<input type="hidden" name="category" value="{{ $selectedCategory }}" />@endif
+                        @if ($selectedTag)<input type="hidden" name="tag" value="{{ $selectedTag }}" />@endif
+                        @if ($searchTerm)<input type="hidden" name="q" value="{{ $searchTerm }}" />@endif
+                        <label class="visually-hidden" for="homeSort">Urutkan artikel</label>
+                        <select class="form-select form-select-sm" id="homeSort" name="sort" onchange="this.form.submit()">
+                            <option value="newest" {{ $sort === 'newest' ? 'selected' : '' }}>Terbaru</option>
+                            <option value="oldest" {{ $sort === 'oldest' ? 'selected' : '' }}>Terlama</option>
+                            <option value="views" {{ $sort === 'views' ? 'selected' : '' }}>Paling banyak dilihat</option>
+                        </select>
+                    </form>
                 </div>
 
                 @forelse ($posts as $post)
@@ -126,7 +150,14 @@
                             @if ($post->excerpt)
                                 <p class="article-card-excerpt">{{ $post->excerpt }}</p>
                             @endif
-                            <div class="story-meta">{{ $post->user?->name ?? 'Agusha Blog' }} · {{ $post->published_at->locale('id')->translatedFormat('d F Y') }}</div>
+                            <div class="story-meta">
+                                @if ($post->user)
+                                    <a href="{{ route('authors.show', $post->user) }}">{{ $post->user->name }}</a>
+                                @else
+                                    Agusha Blog
+                                @endif
+                                · {{ $post->published_at->locale('id')->translatedFormat('d F Y') }}
+                            </div>
                             @if ($post->tags->isNotEmpty())
                                 <div class="story-chips mt-2">
                                     @foreach ($post->tags->take(3) as $tag)
@@ -134,6 +165,9 @@
                                     @endforeach
                                 </div>
                             @endif
+                            <div class="mt-3">
+                                @include('layout.reading-list-button', ['post' => $post, 'isSaved' => in_array($post->id, $savedPostIds, true), 'iconOnly' => true])
+                            </div>
                         </div>
                     </article>
                 @empty
@@ -148,7 +182,7 @@
                 @endforelse
 
                 @if ($posts->hasPages())
-                    <nav class="mt-4" aria-label="Navigasi halaman artikel">{{ $posts->links() }}</nav>
+                    <nav class="home-pagination mt-4" aria-label="Navigasi halaman artikel">{{ $posts->links('pagination::bootstrap-5') }}</nav>
                 @endif
             </section>
 
@@ -158,7 +192,7 @@
                     @if ($categories->isNotEmpty())
                         <nav class="category-list" aria-label="Kategori artikel">
                             @foreach ($categories as $category)
-                                <a class="category-link {{ $selectedCategory === $category->slug ? 'is-active' : '' }}" href="{{ route('home', array_filter(['category' => $category->slug, 'tag' => $selectedTag, 'q' => $searchTerm])) }}">
+                                <a class="category-link {{ $selectedCategory === $category->slug ? 'is-active' : '' }}" href="{{ route('home', array_filter(['category' => $category->slug, 'tag' => $selectedTag, 'q' => $searchTerm, 'sort' => $sort !== 'newest' ? $sort : null])) }}">
                                     <span>{{ $category->name }}</span><span class="category-count">{{ $category->published_posts_count }}</span>
                                 </a>
                             @endforeach
@@ -173,7 +207,7 @@
                     @if ($tags->isNotEmpty())
                         <div class="story-chips">
                             @foreach ($tags as $tag)
-                                <a class="story-chip {{ $selectedTag === $tag->slug ? 'is-active' : '' }}" href="{{ route('home', array_filter(['category' => $selectedCategory, 'tag' => $tag->slug, 'q' => $searchTerm])) }}">#{{ $tag->name }}</a>
+                                <a class="story-chip {{ $selectedTag === $tag->slug ? 'is-active' : '' }}" href="{{ route('home', array_filter(['category' => $selectedCategory, 'tag' => $tag->slug, 'q' => $searchTerm, 'sort' => $sort !== 'newest' ? $sort : null])) }}">#{{ $tag->name }}</a>
                             @endforeach
                         </div>
                     @else
@@ -195,4 +229,85 @@
         </div>
     </main>
 </div>
+<script>
+    document.addEventListener('submit', async (event) => {
+        const form = event.target.closest('[data-reading-list-form]');
+
+        if (!form) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const button = form.querySelector('[data-reading-list-button]');
+        const icon = form.querySelector('[data-reading-list-icon]');
+        const wasSaved = form.dataset.saved === 'true';
+        button.disabled = true;
+        button.classList.add('is-pending');
+
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': form.querySelector('input[name="_token"]').value,
+                },
+                body: new FormData(form),
+                credentials: 'same-origin',
+            });
+
+            if (!response.ok) {
+                throw new Error('Permintaan menyimpan artikel gagal. Coba muat ulang halaman.');
+            }
+
+            const result = await response.json();
+            form.dataset.saved = String(result.isSaved);
+            icon.classList.toggle('fas', result.isSaved);
+            icon.classList.toggle('far', ! result.isSaved);
+            button.setAttribute('aria-label', result.isSaved ? 'Hapus dari daftar bacaan' : 'Simpan ke daftar bacaan');
+            button.setAttribute('title', result.isSaved ? 'Hapus dari daftar bacaan' : 'Simpan ke daftar bacaan');
+            window.dispatchEvent(new CustomEvent('reading-list:updated', { detail: { message: result.message } }));
+        } catch (error) {
+            window.dispatchEvent(new CustomEvent('reading-list:error', { detail: { message: error.message } }));
+        } finally {
+            button.disabled = false;
+            button.classList.remove('is-pending');
+        }
+    });
+
+    window.addEventListener('reading-list:updated', (event) => {
+        showReadingListNotice(event.detail.message, false);
+    });
+
+    window.addEventListener('reading-list:error', (event) => {
+        showReadingListNotice(event.detail.message, true);
+    });
+
+    function showReadingListNotice(message, isError) {
+        document.querySelector('.reading-list-notice')?.remove();
+
+        const notice = document.createElement('div');
+        notice.className = `reading-list-notice${isError ? ' is-error' : ''}`;
+        notice.setAttribute('role', isError ? 'alert' : 'status');
+        notice.textContent = message;
+        document.body.append(notice);
+
+        window.setTimeout(() => {
+            notice.classList.add('is-leaving');
+            window.setTimeout(() => notice.remove(), 250);
+        }, 2600);
+    }
+</script>
+<style>
+    .reading-list-icon-button.is-pending { opacity: .55; cursor: wait; }
+    .reading-list-notice { position: fixed; z-index: 2100; top: 1rem; right: 4.5rem; max-width: min(340px, calc(100vw - 6rem)); padding: .65rem .9rem; border: 1px solid #b7dfc5; border-radius: .7rem; background: #f0fbf4; color: #185c32; box-shadow: 0 .4rem 1.25rem rgba(26, 55, 37, .15); font-size: .85rem; animation: reading-list-notice-enter .22s ease-out both; }
+    .reading-list-notice.is-error { border-color: #edc0c3; background: #fff3f3; color: #842029; }
+    .reading-list-notice.is-leaving { animation: reading-list-notice-exit .2s ease-in both; }
+    @keyframes reading-list-notice-enter { from { opacity: 0; transform: translateY(-.5rem); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes reading-list-notice-exit { to { opacity: 0; transform: translateY(-.5rem); } }
+    @media (prefers-reduced-motion: reduce) { .reading-list-notice, .reading-list-notice.is-leaving { animation-duration: .01ms; } }
+    html[data-theme="dark"] .reading-list-notice { border-color: #356b48; background: #1c3929; color: #c6f1d3; }
+    html[data-theme="dark"] .reading-list-notice.is-error { border-color: #82464d; background: #3f272b; color: #ffc2c6; }
+</style>
 @endsection

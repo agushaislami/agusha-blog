@@ -4,8 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@yield('title', 'Account | Agusha Blog')</title>
+    @include('layout.theme-init')
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/favicon.ico') }}" />
+    <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
     <link href="{{ asset('assets/css/styles.css') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/css/theme.css') }}" rel="stylesheet" />
     <style>
         body.auth-page { min-height: 100vh; display: grid; place-items: center; padding: 1.5rem; background: linear-gradient(145deg, #edf3f5, #dce8eb); }
         .auth-card { width: min(100%, 440px); padding: clamp(1.5rem, 5vw, 2.5rem); background: #fff; border-radius: 1rem; box-shadow: 0 1.25rem 3rem rgba(20, 45, 55, .14); }
@@ -15,11 +18,13 @@
     </style>
 </head>
 <body class="auth-page">
+    @include('layout.theme-toggle')
     <main class="auth-card">
         <a class="auth-brand" href="{{ route('home') }}">Agusha Blog</a>
         @include('layout.flash-notification')
         @yield('content')
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('assets/js/theme.js') }}"></script>
 </body>
 </html>

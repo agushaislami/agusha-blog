@@ -4,9 +4,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>@yield('title', 'Dashboard | Agusha Blog')</title>
+    @include('layout.theme-init')
     <link rel="icon" type="image/x-icon" href="{{ asset('assets/favicon.ico') }}" />
     <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
     <link href="{{ asset('assets/css/styles.css') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/css/theme.css') }}" rel="stylesheet" />
     <style>
         :root { --dashboard-sidebar-width: 260px; --dashboard-ink: #21343a; --dashboard-muted: #718087; --dashboard-accent: #0085a1; }
         body.dashboard-page { min-height: 100vh; margin: 0; color: var(--dashboard-ink); background: #f3f6f7; font-family: 'Open Sans', sans-serif; }
@@ -45,13 +47,17 @@
     </style>
 </head>
 <body class="dashboard-page">
+    @include('layout.theme-toggle')
     <aside class="dashboard-sidebar">
         <a class="dashboard-brand" href="{{ route('home') }}">Agusha Blog</a>
+        <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" style="margin-bottom: 20px" href="{{ route('home') }}"><i class="fas fa-house" aria-hidden="true"></i>Home</a>
         <p class="dashboard-nav-label">Workspace</p>
         <nav aria-label="Dashboard navigation">
             <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}"><i class="fas fa-chart-line" aria-hidden="true"></i>Dashboard</a>
             <a class="nav-link {{ request()->routeIs('dashboard.statuses') ? 'active' : '' }}" href="{{ route('dashboard.statuses') }}"><i class="fas fa-layer-group" aria-hidden="true"></i>Status</a>
+            <a class="nav-link {{ request()->routeIs('dashboard.comments.*') ? 'active' : '' }}" href="{{ route('dashboard.comments.index') }}"><i class="fas fa-comments" aria-hidden="true"></i>Komentar</a>
             <a class="nav-link {{ request()->routeIs('dashboard.posts.*') ? 'active' : '' }}" href="{{ route('dashboard.posts.create') }}"><i class="fas fa-pen" aria-hidden="true"></i>Tulis Artikel</a>
+            <a class="nav-link {{ request()->routeIs('dashboard.reading-list.*') ? 'active' : '' }}" href="{{ route('dashboard.reading-list.index') }}"><i class="fas fa-bookmark" aria-hidden="true"></i>Daftar Bacaan</a>
         </nav>
         <div class="dashboard-sidebar-bottom">
             <div class="dropdown dashboard-account">
@@ -61,6 +67,8 @@
                 </button>
                 <ul class="dropdown-menu">
                     <li><a class="dropdown-item" href="{{ route('home') }}">Lihat blog</a></li>
+                    <li><a class="dropdown-item" href="{{ route('authors.show', auth()->user()) }}">Lihat profil penulis</a></li>
+                    <li><a class="dropdown-item" href="{{ route('dashboard.profile.edit') }}">Edit profil</a></li>
                     <li><hr class="dropdown-divider" /></li>
                     <li>
                         <form action="{{ route('logout') }}" method="POST">
@@ -79,5 +87,6 @@
         </div>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ asset('assets/js/theme.js') }}"></script>
 </body>
 </html>
